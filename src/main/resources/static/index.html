@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Face-Detection</title>
+    <style>
+        #uploadedImage, #imageCanvas {
+            max-width: 500px;
+            max-height: 500px;
+        }
+        #imageCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #imageContainer {
+            position: relative;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<h1>上传图片进行人脸检测</h1>
+<form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="uploadFile" name="file" accept="image/*">
+    <button type="submit">检测人脸</button>
+</form>
+
+<div id="imageContainer">
+    <img id="uploadedImage" src="#" alt="上传的图片">
+    <canvas id="imageCanvas"></canvas>
+</div>
+
+<script>
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadFile = document.getElementById('uploadFile');
+    const uploadedImage = document.getElementById('uploadedImage');
+    const imageCanvas = document.getElementById('imageCanvas');
+    const ctx = imageCanvas.getContext('2d');
+
+    uploadFile.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage.src = e.target.result;
+                uploadedImage.onload = function() {
+                    imageCanvas.width = this.naturalWidth;
+                    imageCanvas.height = this.naturalHeight;
+                    imageCanvas.style.width = this.naturalWidth + 'px';
+                    imageCanvas.style.height = this.naturalHeight + 'px';
+                    ctx.drawImage(this, 0, 0);
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(uploadForm);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(faces => {
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                faces.forEach(face => {
+                    ctx.beginPath();
+                    ctx.rect(face.x, face.y, face.width, face.height);
+                    ctx.stroke();
+                    ctx.closePath();
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+</script>
+</body>
+</html>
